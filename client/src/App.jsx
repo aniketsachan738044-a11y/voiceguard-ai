@@ -141,12 +141,29 @@ export default function App() {
         </div>
 
         {globalError && (
-          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-center justify-between">
+          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <ShieldAlert className="w-5 h-5 flex-shrink-0" />
-              <span>{globalError}</span>
+              <ShieldAlert className="w-5 h-5 flex-shrink-0 text-amber-400" />
+              <div>
+                <span className="font-semibold">Connection Notice: </span>
+                {globalError === 'Network Error' ? (
+                  <span>
+                    Cross-domain connection blocked by browser. For direct zero-error access, use the{' '}
+                    <a
+                      href="https://slot-tmp-radios-improved.trycloudflare.com"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline font-bold text-indigo-400 hover:text-indigo-300"
+                    >
+                      Unified Live Link ↗
+                    </a>
+                  </span>
+                ) : (
+                  <span>{globalError}</span>
+                )}
+              </div>
             </div>
-            <button onClick={() => setGlobalError('')} className="text-xs hover:underline">Dismiss</button>
+            <button onClick={() => setGlobalError('')} className="text-xs text-slate-400 hover:text-slate-200 underline">Dismiss</button>
           </div>
         )}
 
