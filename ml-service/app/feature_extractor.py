@@ -53,16 +53,33 @@ def extract_acoustic_features(waveform: np.ndarray, sr: int = 16000) -> dict:
     mfcc_var = float(np.mean(np.var(mfcc, axis=1)))
     delta_mfcc_var = float(np.mean(np.var(delta_mfcc, axis=1)))
 
-    # Compute individual risk scores (0-100) based on known synthetic voice signatures:
-    # - Abnormally low or high spectral flatness variance
-    # - Low pitch jitter (overly robotic/uniform pitch track) or excessive sudden pitch jumps
-    # - Reduced high-frequency turbulence or unnatural high-frequency cutoff
-    # - Low delta-MFCC variance (lack of natural acoustic vocal tract transitions)
+    # Compute individual risk scores (0-100) calibrated for synthetic vs genuine voice:
+    # 1. Flatness Anomaly: Synthetic TTS has unnaturally uniform high-freq spectral flatness
+    flatness_anomaly = min(100.0, max(0.0, (mean_flatness * 250.0) + max(0.0, (0.01 - std_flatness) * 2000.0)))
+    
+    # 2. Pitch Roboticity / Jitter Score: Natural human speech has natural micro-jitter (jitter > 0.012).
+    # Deepfake/TTS vocoders often have very low jitter (<0.005) or robotic quantization.
+    if jitter < 0.006:
+        pitch_anomaly = min(100.0, (0.006 - jitter) * 12000.0 + 40.0)
+    elif jitter > 0.08:
+        pitch_anomaly = min(100.0, (jitter - 0.08) * 500.0 + 30.0)
+    else:
+        # Natural human range
+        pitch_anomaly = max(0.0, (0.018 - jitter) * 800.0)
 
-    flatness_score = min(100.0, max(0.0, (1.0 - (std_flatness * 50.0)) * 60.0 + (mean_flatness * 400.0)))
-    pitch_stability_score = min(100.0, max(0.0, (1.0 - min(1.0, jitter * 20.0)) * 85.0))
-    artifact_score = min(100.0, max(0.0, high_freq_ratio * 500.0 + (1.0 - min(1.0, delta_mfcc_var / 30.0)) * 50.0))
-    naturalness_score = round(max(5.0, 100.0 - (flatness_score * 0.35 + pitch_stability_score * 0.35 + artifact_score * 0.30)), 1)
+    # 3. High-Freq Artifact Score: Vocoder phase ringing and unnatural band cutoff
+    if high_freq_ratio > 0.15:
+        artifact_score = min(100.0, (high_freq_ratio - 0.15) * 300.0 + 35.0)
+    elif high_freq_ratio < 0.005:
+        artifact_score = 30.0 # Low-bandwidth cutoff characteristic of older TTS
+    else:
+        artifact_score = max(0.0, (high_freq_ratio - 0.08) * 150.0)
+
+    # 4. Vocal Tract Naturalness (Higher is better / more natural)
+    naturalness_score = round(min(100.0, max(10.0, (delta_mfcc_var / 40.0) * 70.0 + (f0_std / 25.0) * 30.0)), 1)
+    
+    # Composite Spoof Risk Score
+    composite_spoof_risk = round(min(100.0, max(0.0, (flatness_anomaly * 0.35) + (pitch_anomaly * 0.35) + (artifact_score * 0.30))), 1)
 
     return {
         "spectral_flatness_mean": round(mean_flatness, 4),
@@ -76,9 +93,10 @@ def extract_acoustic_features(waveform: np.ndarray, sr: int = 16000) -> dict:
         "mfcc_variance": round(mfcc_var, 2),
         "delta_mfcc_variance": round(delta_mfcc_var, 2),
         "computed_scores": {
-            "spectral_flatness_score": round(flatness_score, 1),
-            "pitch_consistency_score": round(pitch_stability_score, 1),
+            "spectral_flatness_score": round(flatness_anomaly, 1),
+            "pitch_consistency_score": round(pitch_anomaly, 1),
             "high_freq_artifact_ratio": round(artifact_score, 1),
-            "acoustic_naturalness": naturalness_score
+            "acoustic_naturalness": naturalness_score,
+            "composite_spoof_risk": composite_spoof_risk
         }
     }

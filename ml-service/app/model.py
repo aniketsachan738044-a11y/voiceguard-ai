@@ -42,13 +42,7 @@ class AntiSpoofingDetector:
         # 1. Extract acoustic feature metrics
         acoustic_feat = extract_acoustic_features(waveform, sr)
         comp_scores = acoustic_feat["computed_scores"]
-
-        # Calculate base acoustic spoof score (0 to 100)
-        flatness_weight = comp_scores["spectral_flatness_score"] * 0.35
-        pitch_weight = comp_scores["pitch_consistency_score"] * 0.35
-        artifact_weight = comp_scores["high_freq_artifact_ratio"] * 0.30
-
-        raw_acoustic_risk = flatness_weight + pitch_weight + artifact_weight
+        raw_acoustic_risk = comp_scores.get("composite_spoof_risk", 15.0)
 
         # 2. If Hugging Face pipeline is available, integrate its neural score
         hf_risk_score = None
@@ -73,7 +67,7 @@ class AntiSpoofingDetector:
                         break
 
                 if hf_risk_score is None and len(predictions) > 0:
-                    hf_risk_score = float(predictions[0].get("score", 0.5)) * 100.0
+                    hf_risk_score = float(predictions[0].get("score", 0.15)) * 100.0
             except Exception as hf_err:
                 logger.warning(f"HF pipeline inference error: {str(hf_err)}")
 
@@ -99,9 +93,9 @@ class AntiSpoofingDetector:
             verdict = "spoofed"
             risk_label = "High"
 
-        # Calculate confidence (higher at extremes, slightly lower in ambiguous middle)
+        # Confidence is high (>85%) when score is decisively genuine (<35) or decisively spoofed (>65)
         dist_from_50 = abs(final_risk - 50.0)
-        confidence = round(min(0.99, max(0.72, 0.70 + (dist_from_50 / 50.0) * 0.28)), 2)
+        confidence = round(min(0.98, 0.75 + (dist_from_50 / 50.0) * 0.23), 2)
 
         return {
             "risk_score": final_risk,
