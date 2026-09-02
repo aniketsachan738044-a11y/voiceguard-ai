@@ -5,7 +5,7 @@ const getBaseUrl = () => {
     return import.meta.env.VITE_API_URL.replace(/\/+$/, '') + '/api';
   }
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return 'https://saved-study-revolution-ahead.trycloudflare.com/api';
+    return 'https://slot-tmp-radios-improved.trycloudflare.com/api';
   }
   return '/api';
 };

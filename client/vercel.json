@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://saved-study-revolution-ahead.trycloudflare.com/api/:path*"
+      "destination": "https://slot-tmp-radios-improved.trycloudflare.com/api/:path*"
     },
     {
       "source": "/(.*)",
