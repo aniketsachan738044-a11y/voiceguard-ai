@@ -1,6 +1,16 @@
 import axios from 'axios';
 
-const API_BASE = (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/+$/, '') : '') + '/api';
+const getBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/+$/, '') + '/api';
+  }
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return 'https://saved-study-revolution-ahead.trycloudflare.com/api';
+  }
+  return '/api';
+};
+
+const API_BASE = getBaseUrl();
 
 export const api = {
   checkHealth: async () => {
