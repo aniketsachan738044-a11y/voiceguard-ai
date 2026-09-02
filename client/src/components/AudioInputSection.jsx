@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Upload, Play, Square, RefreshCw, Sparkles, FileAudio, AlertCircle } from 'lucide-react';
+import { Mic, Upload, Play, Pause, Square, RefreshCw, Sparkles, FileAudio, AlertCircle } from 'lucide-react';
 import { convertWebmToWav } from '../utils/audioEncoder';
 
 export function AudioInputSection({ onAnalyze, isLoading }) {
   const [activeTab, setActiveTab] = useState('mic'); // 'mic' | 'file'
   const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [recordTime, setRecordTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState(null);
   const [audioUrl, setAudioUrl] = useState(null);
@@ -35,6 +36,7 @@ export function AudioInputSection({ onAnalyze, isLoading }) {
     setAudioUrl(null);
     audioChunksRef.current = [];
     setRecordTime(0);
+    setIsPaused(false);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -75,6 +77,7 @@ export function AudioInputSection({ onAnalyze, isLoading }) {
 
       mediaRecorderRef.current.start();
       setIsRecording(true);
+      setIsPaused(false);
 
       timerRef.current = setInterval(() => {
         setRecordTime((prev) => {
@@ -92,10 +95,35 @@ export function AudioInputSection({ onAnalyze, isLoading }) {
     }
   };
 
+  const pauseRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.pause();
+      setIsPaused(true);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  };
+
+  const resumeRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'paused') {
+      mediaRecorderRef.current.resume();
+      setIsPaused(false);
+      timerRef.current = setInterval(() => {
+        setRecordTime((prev) => {
+          if (prev >= 14) {
+            stopRecording();
+            return 15;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    }
+  };
+
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && (isRecording || isPaused)) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      setIsPaused(false);
       if (timerRef.current) clearInterval(timerRef.current);
     }
   };
@@ -198,33 +226,59 @@ export function AudioInputSection({ onAnalyze, isLoading }) {
       {activeTab === 'mic' && (
         <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-700 rounded-xl bg-slate-900/30">
           
-          <div className="relative mb-6">
-            {isRecording && (
-              <div className="absolute -inset-3 rounded-full bg-indigo-500/20 animate-ping"></div>
+          {/* Recording Controls */}
+          <div className="flex items-center gap-4 mb-6">
+            {!isRecording && !isPaused ? (
+              <div className="flex flex-col items-center gap-2">
+                <button
+                  onClick={startRecording}
+                  disabled={isLoading}
+                  className="w-20 h-20 rounded-full bg-indigo-600 hover:bg-indigo-500 shadow-xl shadow-indigo-600/40 flex items-center justify-center transition-all transform hover:scale-105"
+                  title="Start Recording"
+                >
+                  <Mic className="w-8 h-8 text-white" />
+                </button>
+                <span className="text-xs font-semibold text-slate-300">Click to Record</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-6">
+                {/* Pause / Resume Button */}
+                <div className="flex flex-col items-center gap-1.5">
+                  <button
+                    onClick={isPaused ? resumeRecording : pauseRecording}
+                    className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg ${
+                      isPaused
+                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
+                        : 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30'
+                    }`}
+                    title={isPaused ? 'Resume Recording' : 'Pause Recording'}
+                  >
+                    {isPaused ? <Play className="w-6 h-6 fill-white ml-0.5" /> : <Pause className="w-6 h-6 fill-white" />}
+                  </button>
+                  <span className="text-[11px] font-bold text-slate-300">{isPaused ? 'Resume' : 'Pause'}</span>
+                </div>
+
+                {/* Stop & Save Button */}
+                <div className="flex flex-col items-center gap-1.5">
+                  <button
+                    onClick={stopRecording}
+                    className="w-16 h-16 rounded-full bg-rose-600 hover:bg-rose-500 text-white shadow-xl shadow-rose-600/40 flex items-center justify-center transition-all transform hover:scale-105"
+                    title="Stop Recording"
+                  >
+                    <Square className="w-7 h-7 fill-white" />
+                  </button>
+                  <span className="text-[11px] font-bold text-rose-400">Stop & Done</span>
+                </div>
+              </div>
             )}
-            <button
-              onClick={isRecording ? stopRecording : startRecording}
-              disabled={isLoading}
-              className={`relative z-10 w-20 h-20 rounded-full flex items-center justify-center transition-all transform hover:scale-105 shadow-xl ${
-                isRecording
-                  ? 'bg-red-500 hover:bg-red-600 shadow-red-500/40'
-                  : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/40'
-              }`}
-            >
-              {isRecording ? (
-                <Square className="w-8 h-8 text-white fill-white" />
-              ) : (
-                <Mic className="w-8 h-8 text-white" />
-              )}
-            </button>
           </div>
 
           <div className="text-center mb-4">
             <h3 className="text-base font-semibold text-slate-100">
-              {isRecording ? 'Recording Voice Clip...' : audioBlob ? 'Voice Recording Ready' : 'Click Mic to Record'}
+              {isPaused ? '⏸️ Recording Paused' : isRecording ? '🔴 Recording Voice Clip...' : audioBlob ? '✅ Voice Recording Ready' : '🎙️ Click Mic to Record'}
             </h3>
             <p className="text-xs text-slate-400 mt-1">
-              Speak naturally for 5 to 15 seconds for best detection results.
+              {isRecording ? 'Click "Stop & Done" when finished speaking.' : 'Speak naturally for 5 to 15 seconds for best detection results.'}
             </p>
           </div>
 
