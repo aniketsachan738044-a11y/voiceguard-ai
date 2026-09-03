@@ -84,7 +84,7 @@ export default function App() {
       console.error("Analysis Error:", err);
       const errMsg = err.response?.data?.message || err.message || 'Audio analysis failed.';
       setGlobalError(errMsg);
-    } fontFinally: {
+    } finally {
       setIsLoading(false);
     }
   };
