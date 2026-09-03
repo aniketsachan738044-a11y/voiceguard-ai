@@ -28,11 +28,11 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
-app.use('/api/health', healthRoutes);
-app.use('/api/analyze', analysisRoutes);
-app.use('/api/history', historyRoutes);
-app.use('/api/settings', settingsRoutes);
+// Routes (support both /api/* and root paths)
+app.use(['/api/health', '/health'], healthRoutes);
+app.use(['/api/analyze', '/analyze'], analysisRoutes);
+app.use(['/api/history', '/history'], historyRoutes);
+app.use(['/api/settings', '/settings'], settingsRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
