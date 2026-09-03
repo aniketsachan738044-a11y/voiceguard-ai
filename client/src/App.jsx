@@ -35,6 +35,7 @@ export default function App() {
       if (res.model) setModelInfo(res.model);
     } catch (err) {
       setIsOnline(false);
+      // Don't show error banner for background health checks
     }
   };
 
@@ -44,7 +45,7 @@ export default function App() {
       const res = await api.getHistory();
       if (res.data) setHistory(res.data);
     } catch (err) {
-      console.warn("Failed to fetch history:", err);
+      // Silent fail for background data fetch
     } finally {
       setIsHistoryLoading(false);
     }
@@ -55,7 +56,7 @@ export default function App() {
       const res = await api.getSettings();
       if (res.data) setSettings(res.data);
     } catch (err) {
-      console.warn("Failed to fetch settings:", err);
+      // Silent fail for background settings fetch
     }
   };
 
@@ -67,6 +68,7 @@ export default function App() {
       if (response.status === 'success' && response.data) {
         const result = response.data;
         setCurrentAnalysis(result);
+        setIsOnline(true); // Mark as online since analysis succeeded
 
         // Check if alert was triggered
         if (result.alertTriggered) {
