@@ -5,7 +5,7 @@ const getBaseUrl = () => {
     return import.meta.env.VITE_API_URL.replace(/\/+$/, '') + '/api';
   }
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return 'https://slot-tmp-radios-improved.trycloudflare.com/api';
+    return 'https://voiceguard-backend-laf2.onrender.com/api';
   }
   return '/api';
 };
