@@ -1,0 +1,34 @@
+services:
+  # 1. Python ML Microservice (FastAPI + PyTorch)
+  - type: web
+    name: voiceguard-ml-service
+    env: docker
+    dockerfilePath: ml-service/Dockerfile
+    dockerContext: ml-service
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: MODEL_NAME
+        value: lab260/AASIST3
+
+  # 2. Node.js Express Backend Orchestrator
+  - type: web
+    name: voiceguard-server
+    env: node
+    rootDir: server
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: node src/index.js
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: NODE_ENV
+        value: production
+      - key: ML_SERVICE_URL
+        fromService:
+          type: web
+          name: voiceguard-ml-service
+          property: host
