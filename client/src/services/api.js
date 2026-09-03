@@ -12,9 +12,14 @@ const getBaseUrl = () => {
 
 const API_BASE = getBaseUrl();
 
+const apiClient = axios.create({
+  baseURL: API_BASE,
+  timeout: 60000 // 60s timeout to accommodate Render cloud cold starts
+});
+
 export const api = {
   checkHealth: async () => {
-    const res = await axios.get(`${API_BASE}/health`);
+    const res = await apiClient.get('/health');
     return res.data;
   },
 
@@ -26,34 +31,34 @@ export const api = {
       formData.append('audio', audioBlobOrFile, filename);
     }
 
-    const res = await axios.post(`${API_BASE}/analyze`, formData, {
+    const res = await apiClient.post('/analyze', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return res.data;
   },
 
   getHistory: async (params = {}) => {
-    const res = await axios.get(`${API_BASE}/history`, { params });
+    const res = await apiClient.get('/history', { params });
     return res.data;
   },
 
   deleteHistoryItem: async (id) => {
-    const res = await axios.delete(`${API_BASE}/history/${id}`);
+    const res = await apiClient.delete(`/history/${id}`);
     return res.data;
   },
 
   clearHistory: async () => {
-    const res = await axios.delete(`${API_BASE}/history`);
+    const res = await apiClient.delete('/history');
     return res.data;
   },
 
   getSettings: async () => {
-    const res = await axios.get(`${API_BASE}/settings`);
+    const res = await apiClient.get('/settings');
     return res.data;
   },
 
   updateSettings: async (settingsData) => {
-    const res = await axios.post(`${API_BASE}/settings`, settingsData);
+    const res = await apiClient.post('/settings', settingsData);
     return res.data;
   }
 };
